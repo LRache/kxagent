@@ -3,19 +3,17 @@
 
 #![deny(missing_docs)]
 
-
-
 use anyhow;
+use async_trait::async_trait;
 use reqwest;
 use serde::Deserialize;
 use serde_json::Value;
+use std::fmt::{Arguments, Debug};
 use std::{collections::HashMap, env, sync::Arc};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tokio::sync::Mutex;
-use std::fmt::{Arguments, Debug};
-use async_trait::async_trait; //用来给trait处理async函数返回的Future类型
+use tokio::sync::Mutex; //用来给trait处理async函数返回的Future类型
 
-#[async_trait]  
+#[async_trait]
 trait Tool: Debug + Send + Sync {
     // 工具元信息。
     fn metadata(&self) -> &ToolMetadata;
@@ -28,8 +26,8 @@ trait Tool: Debug + Send + Sync {
 struct ToolMetadata {
     schema: ToolSchema,
     default_visibility: String, // Agent 未显式配置时使用的默认可见性。
-    capabilities: String, // 工具能力标记。
-    execution: String, // 超时、可中断性和结果返回策略。
+    capabilities: String,       // 工具能力标记。
+    execution: String,          // 超时、可中断性和结果返回策略。
 }
 
 #[derive(Debug, Clone)]
@@ -54,17 +52,17 @@ struct ToolOutput {
 }
 
 struct AgentCoreResult<T> {
-    data:Option<T>,
+    data: Option<T>,
     error: Option<String>,
 }
 
 /// 基于函数的工具实现，适用于简单的工具逻辑。
 struct FnTool {
     metadata: ToolMetadata,
-    handler:Box<dyn Fn(ToolInvocation) -> AgentCoreResult<ToolOutput> + Send + Sync>,
+    handler: Box<dyn Fn(ToolInvocation) -> AgentCoreResult<ToolOutput> + Send + Sync>,
 }
 
-impl Debug for FnTool{
+impl Debug for FnTool {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("FnTool")
             .field("metadata", &self.metadata)
@@ -83,19 +81,18 @@ impl Tool for FnTool {
         (self.handler)(invocation)
     }
 }
- 
+
 /// A simple library to test the build process of a Rust project.
 pub fn add(left: u64, right: u64) -> u64 {
     left + right
 }
 
-
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    let mut tools:HashMap<String, Arc<dyn Tool + Send + Sync>> = HashMap::new();
+    let mut tools: HashMap<String, Arc<dyn Tool + Send + Sync>> = HashMap::new();
     //定义一个FnTool
-    let add_tool = FnTool{
-        metadata:ToolMetadata {
+    let add_tool = FnTool {
+        metadata: ToolMetadata {
             schema: ToolSchema {
                 name: "add".to_string(),
                 description: "Adds two numbers".to_string(),
@@ -106,26 +103,23 @@ async fn main() -> anyhow::Result<()> {
             execution: "i dont know".to_string(),
         },
         handler: Box::new(|invocation| {
-            let mut result = AgentCoreResult{
+            let mut result = AgentCoreResult {
                 data: None,
                 error: None,
             };
             let left = invocation.arguments.get("left").and_then(|v| v.as_u64()).unwrap_or(0);
             let right = invocation.arguments.get("right").and_then(|v| v.as_u64()).unwrap_or(0);
             let fn_result = add(left, right);
-            result.data = Some(ToolOutput{
+            result.data = Some(ToolOutput {
                 result: serde_json::json!(fn_result),
             });
             result
         }),
     };
     tools.insert(add_tool.metadata().schema.name.clone(), Arc::new(add_tool));
-    
 
     return Ok(());
 }
-
-
 
 #[cfg(test)]
 mod tests {
@@ -158,16 +152,8 @@ mod tests {
         let add_tool = FnTool {
             metadata: metadata.clone(),
             handler: Box::new(|invocation| {
-                let left = invocation
-                    .arguments
-                    .get("left")
-                    .and_then(|v| v.as_u64())
-                    .unwrap_or(0);
-                let right = invocation
-                    .arguments
-                    .get("right")
-                    .and_then(|v| v.as_u64())
-                    .unwrap_or(0);
+                let left = invocation.arguments.get("left").and_then(|v| v.as_u64()).unwrap_or(0);
+                let right = invocation.arguments.get("right").and_then(|v| v.as_u64()).unwrap_or(0);
                 AgentCoreResult {
                     data: Some(ToolOutput {
                         result: serde_json::json!(add(left, right)),
