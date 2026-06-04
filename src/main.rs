@@ -1,8 +1,11 @@
 //! KxAgent 入口文件。
 
-use kxagent::{
-    add, AgentCoreResult, FnTool, Tool, ToolMetadata, ToolOutput, ToolSchema,
-};
+/// Agent 核心类型（Tool trait、Schema、错误类型等）。
+pub mod types;
+
+pub use types::{AgentCoreResult, AgentError, FnTool, Tool, ToolInvocation, ToolMetadata, ToolOutput, ToolSchema};
+
+use kxagent::add;
 use std::collections::HashMap;
 use std::sync::Arc;
 

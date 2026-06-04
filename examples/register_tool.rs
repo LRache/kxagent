@@ -4,9 +4,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use kxagent::{
-     AgentCoreResult, FnTool, Tool, ToolMetadata, ToolOutput, ToolSchema,
-};
+use kxagent::{AgentCoreResult, FnTool, Tool, ToolMetadata, ToolOutput, ToolSchema};
 
 fn factorial(n: u64) -> u64 {
     (1..=n).product()
@@ -14,7 +12,7 @@ fn factorial(n: u64) -> u64 {
 
 fn main() -> anyhow::Result<()> {
     // 创建一个工具注册表
-    let mut tools :HashMap<String, Arc<dyn Tool>> = HashMap::new();
+    let mut tools: HashMap<String, Arc<dyn Tool>> = HashMap::new();
 
     let factorial_tool = FnTool {
         metadata: ToolMetadata {
@@ -37,7 +35,7 @@ fn main() -> anyhow::Result<()> {
             })
         }),
     };
-    
+
     tools.insert(factorial_tool.metadata().schema.name.clone(), Arc::new(factorial_tool));
     println!("成功注册了工具: {}", &tools["factorial"].metadata().schema.name);
     Ok(())
