@@ -14,7 +14,7 @@ fn factorial(n: u64) -> u64 {
 
 fn main() -> anyhow::Result<()> {
     // 创建一个工具注册表
-    let mut Tools :HashMap<String, Arc<dyn Tool>> = HashMap::new();
+    let mut tools :HashMap<String, Arc<dyn Tool>> = HashMap::new();
 
     let factorial_tool = FnTool {
         metadata: ToolMetadata {
@@ -38,7 +38,7 @@ fn main() -> anyhow::Result<()> {
         }),
     };
     
-    Tools.insert(factorial_tool.metadata().schema.name.clone(), Arc::new(factorial_tool));
-    println!("成功注册了工具: {}", &Tools["factorial"].metadata().schema.name);
+    tools.insert(factorial_tool.metadata().schema.name.clone(), Arc::new(factorial_tool));
+    println!("成功注册了工具: {}", &tools["factorial"].metadata().schema.name);
     Ok(())
 }
