@@ -36,6 +36,7 @@ kxagent
 
 ```
 
+```
 预期的目录结构如下：
 agent-core/
 ├── Cargo.toml
@@ -97,3 +98,4 @@ agent-core/
 └── docs/
     ├── architecture.md
     └── runtime.md
+```
