@@ -4,6 +4,12 @@
 /// Agent 核心类型（Tool trait、Schema、错误类型等）。
 pub mod types;
 
+/// Agent 核心功能（工具注册、工具调用、执行流程等）。
+pub mod graph;
+
+/// 内置工具构造函数。
+pub mod tools;
+
 pub use types::{AgentCoreResult, AgentError, FnTool, Tool, ToolInvocation, ToolMetadata, ToolOutput, ToolSchema};
 
 /// A simple library to test the build process of a Rust project.

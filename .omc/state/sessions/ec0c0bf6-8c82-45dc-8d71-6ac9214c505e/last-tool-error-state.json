@@ -1,0 +1,7 @@
+{
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"cd F:\\\\rust_prctise\\\\kxagent; cargo run -p agent-core --example register_tool 2>&1\",\"description\":\"Run register_tool example\"}",
+  "error": "Exit code 101\n/usr/bin/bash: line 1: cd: F:rust_prctisekxagent: No such file or directory\nwarning: unused import: `Tool`\n --> crates\\agent-core\\src\\graph\\node.rs:3:13\n  |\n3 | use crate::{Tool, types::FnTool};\n  |             ^^^^\n  |\n  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default\n\nwarning: struct `ToolNode` is never constructed\n  --> crates\\agent-core\\src\\graph\\node.rs:31:8\n   |\n31 | struct ToolNode {\n   |        ^^^^^^^^\n   |\n   = note: `#[warn(dead_code)]` (part ...",
+  "timestamp": "2026-06-13T07:53:50.180Z",
+  "retry_count": 2
+}

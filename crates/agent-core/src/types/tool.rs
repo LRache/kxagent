@@ -4,6 +4,7 @@ use async_trait::async_trait;
 use serde_json::Value;
 use std::fmt::Debug;
 use std::result::Result;
+use serde::{Deserialize, Serialize};
 
 /// Tool trait，所有工具必须实现此 trait。
 #[async_trait]
@@ -16,7 +17,7 @@ pub trait Tool: Debug + Send + Sync {
 }
 
 /// 工具的元信息，包含 schema、可见性、能力和执行策略。
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ToolMetadata {
     /// 工具的 JSON Schema 定义。
     pub schema: ToolSchema,
@@ -29,7 +30,7 @@ pub struct ToolMetadata {
 }
 
 /// 工具的 Schema 定义，包含名称、描述和参数 JSON Schema。
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ToolSchema {
     /// 工具名称。
     pub name: String,
@@ -40,7 +41,7 @@ pub struct ToolSchema {
 }
 
 /// 一次工具调用的请求参数。
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ToolInvocation {
     /// 调用的唯一标识。
     pub call_id: String,
@@ -53,7 +54,7 @@ pub struct ToolInvocation {
 }
 
 /// 工具调用的输出结果。
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ToolOutput {
     /// 工具返回的结果，以 JSON Value 形式表示。
     pub result: serde_json::Value,
@@ -76,6 +77,37 @@ impl Debug for FnTool {
             .field("metadata", &self.metadata)
             .field("handler", &"<function>")
             .finish()
+    }
+}
+
+/// 序列化 FnTool：只序列化 metadata，跳过 handler（闭包不可序列化）。
+impl Serialize for FnTool {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        use serde::ser::SerializeStruct;
+        let mut s = serializer.serialize_struct("FnTool", 1)?;
+        s.serialize_field("metadata", &self.metadata)?;
+        s.end()
+    }
+}
+
+/// 反序列化 FnTool：只反序列化 metadata，handler 置为一个
+/// 会返回 InternalError 的占位闭包。
+impl<'de> Deserialize<'de> for FnTool {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        #[derive(Deserialize)]
+        #[serde(rename = "FnTool")]
+        struct Helper {
+            metadata: ToolMetadata,
+        }
+        let helper = Helper::deserialize(deserializer)?;
+        Ok(FnTool {
+            metadata: helper.metadata,
+            handler: Box::new(|_| {
+                Err(AgentError::InternalError(
+                    "deserialized FnTool has no handler".into(),
+                ))
+            }),
+        })
     }
 }
 

@@ -1,7 +1,9 @@
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 
 ///node和tool直接传输数据的结构
+#[derive(Serialize,Deserialize)]
 pub struct AgentMessage<T> {
     ///信息来源
     pub role: String,
@@ -13,9 +15,10 @@ pub struct AgentMessage<T> {
 }
 
 ///包装message传输的data
+#[derive(Serialize,Deserialize)]
 pub struct ContentBlock<T> {
     ///type
-    pub _type: String,
+    pub data_type: String,
     ///data
     pub data: T,
 }
