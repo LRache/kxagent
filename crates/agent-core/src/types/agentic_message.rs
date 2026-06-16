@@ -3,7 +3,7 @@ use serde_json::Value;
 use std::collections::HashMap;
 
 ///node和tool直接传输数据的结构
-#[derive(Serialize,Deserialize)]
+#[derive(Serialize,Deserialize, Debug)]
 pub struct AgentMessage<T> {
     ///信息来源
     pub role: String,
@@ -15,10 +15,12 @@ pub struct AgentMessage<T> {
 }
 
 ///包装message传输的data
-#[derive(Serialize,Deserialize)]
+#[derive(Serialize,Deserialize, Debug)]
 pub struct ContentBlock<T> {
     ///type
     pub data_type: String,
     ///data
     pub data: T,
 }
+
+pub type DefaultAgentMessage = AgentMessage<serde_json::Value>;

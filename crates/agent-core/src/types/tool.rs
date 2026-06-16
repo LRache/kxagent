@@ -71,6 +71,11 @@ pub struct FnTool {
     pub handler: Box<dyn Fn(ToolInvocation) -> AgentCoreResult<ToolOutput> + Send + Sync>,
 }
 
+
+
+
+
+
 impl Debug for FnTool {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("FnTool")
