@@ -3,8 +3,8 @@
 use crate::{
     Tool, ToolInvocation,
     types::{
-        AgentCoreResult, AgentError, FnTool, ToolOutput,
-        agentic_message::{AgentMessage, ContentBlock},
+        AgentError, FnTool,
+        agentic_message::{AgentMessage, ContentBlock, ToolResultBlock},
     },
 };
 use async_trait::async_trait;
@@ -13,40 +13,34 @@ use serde_json::Value;
 
 /// Node 的 trait，定义节点的完整生命周期。
 #[async_trait]
-pub trait BaseNode: Send + Sync+ std::fmt::Debug {
-    // /// 创建新节点。
-    // fn new() -> Self
-    // where
-    //     Self: Sized;
-    /// 数据预处理,暂时将接受的message类型定为json
-    fn prep(&self, message: AgentMessage<Value>) -> Result<Value, AgentError>;
-    /// 执行逻辑，可重写。
-    async fn exec(&self, message: Value) -> Result<Value, AgentError>;
-    /// 数据后处理（结果存储、日志记录等）。
-    fn post(&self, message: Value) -> AgentMessage<Value>;
-    /// 框架执行的逻辑，不可重写，保证流程一致性。
-    async fn _exec(&self, message: Value) -> Result<Value, AgentError> {
-        return self.exec(message).await;
+pub trait BaseNode: Send + Sync + std::fmt::Debug {
+    /// 数据预处理：从入站消息中提取本节点需要的数据。
+    fn prep(&self, message: AgentMessage) -> Result<Value, AgentError>;
+
+    /// 核心执行逻辑，可被子类重写。
+    async fn exec(&self, data: Value) -> Result<Value, AgentError>;
+
+    /// 数据后处理：将执行结果包装为出站消息。
+    fn post(&self, result: Value) -> AgentMessage;
+
+    /// 框架内部执行，默认委托给 [`exec`](BaseNode::exec)。
+    async fn _exec(&self, data: Value) -> Result<Value, AgentError> {
+        self.exec(data).await
     }
-    /// Node 执行的完整流程。内部直接直接通过json传递数据，接受与传出数据时要用agentic_message包裹
-    async fn _run(&self, message: AgentMessage<Value>) -> Result<AgentMessage<Value>, AgentError> {
-        match self.prep(message) {
-            Ok(data) => match self._exec(data).await {
-                Ok(data) => {
-                    let message = self.post(data);
-                    return Ok(message);
-                }
-                Err(e) => return Err(e),
-            },
-            Err(e) => return Err(e),
-        }
+
+    /// Node 执行的完整流程：prep → _exec → post。
+    async fn _run(&self, message: AgentMessage) -> Result<AgentMessage, AgentError> {
+        let data = self.prep(message)?;
+        let result = self._exec(data).await?;
+        Ok(self.post(result))
     }
+
     /// 连接下一个 node。
     fn next(&mut self, node: Box<dyn BaseNode>);
 }
 
-///这是一个toolNode，用来调用tool，同时指向下一个node
-#[derive(Debug,Serialize,Deserialize)]
+/// 工具调用节点：入站消息中提取 ToolCall 块，执行工具，将结果包装为 ToolResult。
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ToolNode {
     /// 该节点对应的工具。
     tool: FnTool,
@@ -57,32 +51,33 @@ pub struct ToolNode {
 
 #[async_trait]
 impl BaseNode for ToolNode {
-  
-
-    //message是一条llm call
-    fn prep(&self, message: AgentMessage<Value>) -> Result<Value, AgentError> {
-        match message.content[0].data.get("ToolInvocation") {
-            Some(data) => Ok(data.clone()),
-            None => return Err(AgentError::InvalidArguments("None arguments".to_string())),
+    fn prep(&self, message: AgentMessage) -> Result<Value, AgentError> {
+        let block = message
+            .content
+            .first()
+            .ok_or_else(|| AgentError::InvalidArguments("empty content".into()))?;
+        match block {
+            ContentBlock::ToolCall(tc) => Ok(tc.tool_invocation.clone()),
+            ContentBlock::Text(_) => Err(AgentError::InvalidArguments("expected ToolCall block, got Text".into())),
+            ContentBlock::ToolResult(_) => Err(AgentError::InvalidArguments(
+                "expected ToolCall block, got ToolResult".into(),
+            )),
         }
     }
 
-    async fn exec(&self, message: Value) -> Result<Value, AgentError> {
-        let inv: ToolInvocation =
-            serde_json::from_value(message).map_err(|e| AgentError::InvalidArguments(format!("parse failed: {e}")))?;
+    async fn exec(&self, data: Value) -> Result<Value, AgentError> {
+        let inv: ToolInvocation = serde_json::from_value(data)
+            .map_err(|e| AgentError::InvalidArguments(format!("parse ToolInvocation failed: {e}")))?;
 
         let output = self.tool.invoke(inv).await?;
 
-        return Ok(serde_json::json!(output));
+        Ok(serde_json::json!(output))
     }
 
-    fn post(&self, message: Value) -> AgentMessage<Value> {
+    fn post(&self, result: Value) -> AgentMessage {
         AgentMessage {
-            role: String::new(),
-            content: vec![ContentBlock {
-                data_type: "tool_result".to_string(),
-                data: message,
-            }],
+            role: "tool".into(),
+            content: vec![ContentBlock::ToolResult(ToolResultBlock { tool_output: result })],
             extra: None,
         }
     }
@@ -92,10 +87,9 @@ impl BaseNode for ToolNode {
     }
 }
 
-
 impl ToolNode {
-    ///传入一个FnTool，创建一个ToolNode
-    pub fn new(tool:FnTool) -> Self {
-        Self{tool,next_node:None}
+    /// 传入一个 FnTool，创建一个 ToolNode。
+    pub fn new(tool: FnTool) -> Self {
+        Self { tool, next_node: None }
     }
 }

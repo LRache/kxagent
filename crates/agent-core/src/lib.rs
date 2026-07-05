@@ -10,6 +10,7 @@ pub mod graph;
 /// 内置工具构造函数。
 pub mod tools;
 
+pub use types::agentic_message::{AgentMessage, ContentBlock, TextBlock, ToolCallBlock, ToolResultBlock};
 pub use types::{AgentCoreResult, AgentError, FnTool, Tool, ToolInvocation, ToolMetadata, ToolOutput, ToolSchema};
 
 /// A simple library to test the build process of a Rust project.

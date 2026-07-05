@@ -1,10 +1,10 @@
 use super::errors::*;
 
 use async_trait::async_trait;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::fmt::Debug;
 use std::result::Result;
-use serde::{Deserialize, Serialize};
 
 /// Tool trait，所有工具必须实现此 trait。
 #[async_trait]
@@ -45,10 +45,13 @@ pub struct ToolSchema {
 pub struct ToolInvocation {
     /// 调用的唯一标识。
     pub call_id: String,
+
     /// 被调用的工具名称。
     pub tool_name: String,
+
     /// 工具参数，以 JSON Value 形式传递。
     pub arguments: serde_json::Value,
+
     /// 工具元信息。
     pub metadata: ToolMetadata,
 }
@@ -70,11 +73,6 @@ pub struct FnTool {
     /// 工具的处理函数。
     pub handler: Box<dyn Fn(ToolInvocation) -> AgentCoreResult<ToolOutput> + Send + Sync>,
 }
-
-
-
-
-
 
 impl Debug for FnTool {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -107,11 +105,7 @@ impl<'de> Deserialize<'de> for FnTool {
         let helper = Helper::deserialize(deserializer)?;
         Ok(FnTool {
             metadata: helper.metadata,
-            handler: Box::new(|_| {
-                Err(AgentError::InternalError(
-                    "deserialized FnTool has no handler".into(),
-                ))
-            }),
+            handler: Box::new(|_| Err(AgentError::InternalError("deserialized FnTool has no handler".into()))),
         })
     }
 }

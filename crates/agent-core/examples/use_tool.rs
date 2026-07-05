@@ -14,10 +14,9 @@ async fn main() -> anyhow::Result<()> {
         arguments: serde_json::json!({"number": 6}),
         metadata: factorial.metadata().clone(),
     };
-    
+
     let output = factorial.invoke(inv).await?;
     println!("factorial(6) = {}", output.result); // 720
-   
 
     Ok(())
 }

@@ -18,11 +18,7 @@ pub fn factorial_tool() -> FnTool {
             execution: "sync".to_string(),
         },
         handler: Box::new(|invocation| {
-            let n = invocation
-                .arguments
-                .get("number")
-                .and_then(|v| v.as_u64())
-                .unwrap_or(0);
+            let n = invocation.arguments.get("number").and_then(|v| v.as_u64()).unwrap_or(0);
             let result: u64 = (1..=n).product();
             AgentCoreResult::Ok(ToolOutput {
                 result: serde_json::json!(result),
@@ -48,16 +44,8 @@ pub fn add_tool() -> FnTool {
             execution: "sync".to_string(),
         },
         handler: Box::new(|invocation| {
-            let left = invocation
-                .arguments
-                .get("left")
-                .and_then(|v| v.as_u64())
-                .unwrap_or(0);
-            let right = invocation
-                .arguments
-                .get("right")
-                .and_then(|v| v.as_u64())
-                .unwrap_or(0);
+            let left = invocation.arguments.get("left").and_then(|v| v.as_u64()).unwrap_or(0);
+            let right = invocation.arguments.get("right").and_then(|v| v.as_u64()).unwrap_or(0);
             AgentCoreResult::Ok(ToolOutput {
                 result: serde_json::json!(left + right),
             })
